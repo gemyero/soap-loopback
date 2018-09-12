@@ -1,4 +1,5 @@
 'use strict';
+// const soap = require('soap'); // comment to see strong-soap object
 
 const promisifiedEvent = (emitter, event) => {
   const promise = new Promise((resolve, reject) => {
@@ -9,52 +10,41 @@ const promisifiedEvent = (emitter, event) => {
 };
 
 module.exports = function(Soap) {
-  Soap.discover = async (id) => {
-    const soap_instance = await Soap.findById(id);
-    if (!soap_instance) throw new Error('No soap datasource found!');
+  Soap.prototype.discover = async function discover() {
+    let soapDs;
     try {
-      const soapDs = Soap.app.dataSource('soapDs', {
+      soapDs = Soap.app.dataSource('soapDs', {
         connector: 'loopback-connector-soap',
-        url: soap_instance.url,
-        wsdl: soap_instance.wsdl_url,
-        remoteEnabled: true
+        url: this.url,
+        wsdl: this.wsdlUrl,
       });
       await promisifiedEvent(soapDs, 'connected');
-      const model = soapDs.createModel('soapTest', {});
-
-      // model.DefineFunction = async (word) => {
-      //   const result = await model.Define({ word });
-      //   console.log(result);
-      //   return result;
-      // };
-
-      // model.remoteMethod('DefineFunction', {
-      //   accepts: { arg: 'word', type: 'string' },
-      //   returns: { arg: 'result', type: 'object', root: true }
-      // });
-
-      Soap.app.model(model, {
-        dataSource: soapDs,
-        public: true
-      });
-
-      const promise = (ds) => new Promise((resolve, reject) => {
+      const promise = ds => new Promise((resolve, reject) => {
         ds.connector.connect((err, client) => {
           if (err) reject(err);
           resolve(client);
         });
       });
+      await promise(soapDs);
+      const result = soapDs.connector.client.describe(); // comment to see node-soap object
 
-      const client = await promise(soapDs);
-      const calls = await client.describe();
-      return calls;
-    } catch (error) {
-      console.log(error);
+      // comment to see strong-soap object
+      // const client = await soap.createClientAsync(this.wsdl_url);
+      // const result = client.describe();  
+
+      return result;
+    } finally {
+      await soapDs.disconnect();
     }
   };
 
-  Soap.remoteMethod('discover', {
-    accepts: { arg: 'id', type: 'string' },
-    returns: { arg: 'soap', type: 'object' }
-  });
+  Soap.remoteMethod(
+    'discover',
+    {
+      isStatic: false,
+      accepts: [],
+      returns: { arg: 'result', type: 'object', root: true },
+      http: { path: '/discover', verb: 'get' },
+    },
+  );
 };

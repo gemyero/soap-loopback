@@ -1,5 +1,5 @@
 {
-  "name": "soap",
+  "name": "soap-tutorial",
   "version": "1.0.0",
   "main": "server/server.js",
   "engines": {
@@ -20,6 +20,7 @@
     "loopback-connector-mongodb": "^1.18.1",
     "loopback-connector-soap": "^4.3.0",
     "serve-favicon": "^2.0.1",
+    "soap": "^0.25.0",
     "strong-error-handler": "^3.0.0"
   },
   "devDependencies": {
